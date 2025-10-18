@@ -1,8 +1,26 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Fix My Shot";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="flex flex-col items-center mt-8 space-y-4">
+    <h1 class="text-2xl font-bold">Fix My Shot</h1>
+
+    <video id="video" autoplay playsinline class="rounded-lg shadow-md" width="480" height="360"></video>
+
+    <button id="startBtn" type="button"
+            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+        Start Analyzing
+    </button>
+
+    <pre id="results" class="mt-4 text-left bg-gray-100 p-4 rounded-md w-96 text-sm"></pre>
 </div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/@@tensorflow/tfjs@4.13.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@@tensorflow-models/pose-detection"></script>
+<script src="https://cdn.jsdelivr.net/npm/@@tensorflow/tfjs-backend-webgl"></script>
+
+
+
+<script src="~/js/analyzeShot.js"></script>

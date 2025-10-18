@@ -23,40 +23,14 @@ namespace FixMyShot.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("AnnotatedVideoUrl")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int?>("ApexFrame")
-                        .HasColumnType("INTEGER");
-
                     b.Property<float>("AverageElbowAngle")
                         .HasColumnType("REAL");
 
-                    b.Property<float>("ConsistencyScore")
+                    b.Property<float>("AverageFeetDistance")
                         .HasColumnType("REAL");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("FootStance")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("Handedness")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("KeypointsJson")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("ReleaseAtApex")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("ReleaseFrame")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("ShotType")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Tips")
                         .IsRequired()
