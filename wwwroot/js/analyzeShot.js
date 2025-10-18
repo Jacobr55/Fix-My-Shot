@@ -1,10 +1,14 @@
 ﻿document.addEventListener("DOMContentLoaded", () => {
     const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
     const startBtn = document.getElementById('startBtn');
     const resultsEl = document.getElementById('results');
+    const countdownEl = document.getElementById('countdown');
 
     let detector;
     let frames = [];
+    let isAnalyzing = false;
 
     // ----------------------------
     // Camera Setup
@@ -15,7 +19,12 @@
         });
         video.srcObject = stream;
         return new Promise(resolve => {
-            video.onloadedmetadata = () => resolve(video);
+            video.onloadedmetadata = () => {
+                // Set canvas size to match video
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                resolve(video);
+            };
         });
     }
 
@@ -29,11 +38,9 @@
         const magA = Math.sqrt(ab[0] ** 2 + ab[1] ** 2);
         const magC = Math.sqrt(cb[0] ** 2 + cb[1] ** 2);
 
-        // Prevent division by zero
         if (magA === 0 || magC === 0) return null;
 
         const cosAngle = dot / (magA * magC);
-        // Clamp to prevent NaN from floating point errors
         const clampedCos = Math.max(-1, Math.min(1, cosAngle));
         const angle = Math.acos(clampedCos);
         return angle * (180 / Math.PI);
@@ -43,49 +50,151 @@
         return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
     }
 
-    // Normalize distance based on shoulder width (more stable reference)
     function normalizeDistance(feetDist, shoulderDist) {
         if (shoulderDist === 0) return null;
         return feetDist / shoulderDist;
     }
 
-    // Validate that the angle makes sense for a human arm
     function isValidElbowAngle(angle) {
         return angle !== null && angle >= 30 && angle <= 180;
     }
 
-    // Validate that feet distance makes sense
     function isValidFeetDistance(normalizedDist) {
         return normalizedDist !== null && normalizedDist > 0.3 && normalizedDist < 4.0;
     }
 
-    // Check if person is in shooting position (arms raised)
     function isInShootingPosition(leftShoulder, leftElbow, rightShoulder, rightElbow) {
-        // Elbows should be at or above shoulder level (y coordinates smaller = higher in image)
-        const leftElbowRaised = leftElbow.y <= leftShoulder.y + 50; // 50px tolerance
+        const leftElbowRaised = leftElbow.y <= leftShoulder.y + 50;
         const rightElbowRaised = rightElbow.y <= rightShoulder.y + 50;
-        return leftElbowRaised || rightElbowRaised; // At least one arm raised
+        return leftElbowRaised || rightElbowRaised;
     }
 
     // ----------------------------
-    // Main Pose Analysis
+    // Drawing Functions
     // ----------------------------
-    async function startAnalysis() {
+    function drawKeypoint(keypoint, color = '#00ff00') {
+        ctx.beginPath();
+        ctx.arc(keypoint.x, keypoint.y, 5, 0, 2 * Math.PI);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+
+    function drawLine(point1, point2, color = '#00ff00', width = 2) {
+        ctx.beginPath();
+        ctx.moveTo(point1.x, point1.y);
+        ctx.lineTo(point2.x, point2.y);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = width;
+        ctx.stroke();
+    }
+
+    function drawSkeleton(keypoints, minConfidence) {
+        // Define skeleton connections
+        const connections = [
+            // Torso
+            ['left_shoulder', 'right_shoulder'],
+            ['left_shoulder', 'left_hip'],
+            ['right_shoulder', 'right_hip'],
+            ['left_hip', 'right_hip'],
+            // Left arm
+            ['left_shoulder', 'left_elbow'],
+            ['left_elbow', 'left_wrist'],
+            // Right arm
+            ['right_shoulder', 'right_elbow'],
+            ['right_elbow', 'right_wrist'],
+            // Left leg
+            ['left_hip', 'left_knee'],
+            ['left_knee', 'left_ankle'],
+            // Right leg
+            ['right_hip', 'right_knee'],
+            ['right_knee', 'right_ankle']
+        ];
+
+        // Draw connections
+        connections.forEach(([start, end]) => {
+            const startPoint = keypoints.find(kp => kp.name === start);
+            const endPoint = keypoints.find(kp => kp.name === end);
+
+            if (startPoint && endPoint &&
+                startPoint.score > minConfidence &&
+                endPoint.score > minConfidence) {
+
+                // Color based on confidence
+                let color;
+                const avgConfidence = (startPoint.score + endPoint.score) / 2;
+                if (avgConfidence > 0.8) {
+                    color = '#00ff00'; // Green - high confidence
+                } else if (avgConfidence > 0.6) {
+                    color = '#ffff00'; // Yellow - medium confidence
+                } else {
+                    color = '#ff6600'; // Orange - low confidence
+                }
+
+                drawLine(startPoint, endPoint, color, 3);
+            }
+        });
+
+        // Draw keypoints
+        keypoints.forEach(keypoint => {
+            if (keypoint.score > minConfidence) {
+                let color;
+                if (keypoint.score > 0.8) {
+                    color = '#00ff00';
+                } else if (keypoint.score > 0.6) {
+                    color = '#ffff00';
+                } else {
+                    color = '#ff6600';
+                }
+                drawKeypoint(keypoint, color);
+            }
+        });
+    }
+
+    function drawStatus(message, color = '#00ff00') {
+        ctx.font = 'bold 20px Arial';
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(10, 10, ctx.measureText(message).width + 20, 40);
+        ctx.fillStyle = color;
+        ctx.fillText(message, 20, 35);
+    }
+
+    // ----------------------------
+    // Countdown
+    // ----------------------------
+    async function showCountdown() {
+        for (let i = 3; i > 0; i--) {
+            countdownEl.textContent = i;
+            countdownEl.style.display = 'block';
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        countdownEl.style.display = 'none';
+    }
+
+    // ----------------------------
+    // Main Pose Analysis with Live Preview
+    // ----------------------------
+    async function startLivePreview() {
         const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
         detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
 
-        frames = [];
-        resultsEl.textContent = "Analyzing... Please get into shooting position with arms raised.";
-        const startTime = performance.now();
-        const minConfidence = 0.6; // Increased confidence threshold
+        const minConfidence = 0.6;
 
         async function detectFrame() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
             const poses = await detector.estimatePoses(video);
 
-            if (poses.length > 0) {
+            if (poses.length > 0 && !isAnalyzing) {
                 const kp = poses[0].keypoints;
 
-                // Extract keypoints
+                // Draw skeleton
+                drawSkeleton(kp, minConfidence);
+
+                // Check if ready for analysis
                 const leftShoulder = kp.find(k => k.name === "left_shoulder");
                 const rightShoulder = kp.find(k => k.name === "right_shoulder");
                 const leftElbow = kp.find(k => k.name === "left_elbow");
@@ -95,7 +204,6 @@
                 const leftAnkle = kp.find(k => k.name === "left_ankle");
                 const rightAnkle = kp.find(k => k.name === "right_ankle");
 
-                // Visibility checks - ALL must be visible
                 const elbowsVisible =
                     leftShoulder?.score > minConfidence &&
                     leftElbow?.score > minConfidence &&
@@ -108,24 +216,78 @@
                     leftAnkle?.score > minConfidence &&
                     rightAnkle?.score > minConfidence;
 
-                // Only process if ALL required body parts are visible
+                if (elbowsVisible && feetVisible &&
+                    isInShootingPosition(leftShoulder, leftElbow, rightShoulder, rightElbow)) {
+                    drawStatus('✓ Ready to Analyze!', '#00ff00');
+                } else if (!elbowsVisible || !feetVisible) {
+                    drawStatus('Step back - show full body', '#ff0000');
+                } else {
+                    drawStatus('Raise arms to shooting position', '#ffff00');
+                }
+            }
+
+            if (!isAnalyzing) {
+                requestAnimationFrame(detectFrame);
+            }
+        }
+
+        detectFrame();
+    }
+
+    // ----------------------------
+    // Analysis Phase
+    // ----------------------------
+    async function startAnalysis() {
+        isAnalyzing = true;
+        frames = [];
+        resultsEl.textContent = "Analyzing... Please hold your shooting position.";
+        const startTime = performance.now();
+        const minConfidence = 0.6;
+
+        async function detectFrame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const poses = await detector.estimatePoses(video);
+
+            if (poses.length > 0) {
+                const kp = poses[0].keypoints;
+
+                // Draw skeleton during analysis
+                drawSkeleton(kp, minConfidence);
+
+                const leftShoulder = kp.find(k => k.name === "left_shoulder");
+                const rightShoulder = kp.find(k => k.name === "right_shoulder");
+                const leftElbow = kp.find(k => k.name === "left_elbow");
+                const rightElbow = kp.find(k => k.name === "right_elbow");
+                const leftWrist = kp.find(k => k.name === "left_wrist");
+                const rightWrist = kp.find(k => k.name === "right_wrist");
+                const leftAnkle = kp.find(k => k.name === "left_ankle");
+                const rightAnkle = kp.find(k => k.name === "right_ankle");
+
+                const elbowsVisible =
+                    leftShoulder?.score > minConfidence &&
+                    leftElbow?.score > minConfidence &&
+                    leftWrist?.score > minConfidence &&
+                    rightShoulder?.score > minConfidence &&
+                    rightElbow?.score > minConfidence &&
+                    rightWrist?.score > minConfidence;
+
+                const feetVisible =
+                    leftAnkle?.score > minConfidence &&
+                    rightAnkle?.score > minConfidence;
+
                 if (elbowsVisible && feetVisible) {
-                    // Check if in shooting position (arms raised)
                     if (isInShootingPosition(leftShoulder, leftElbow, rightShoulder, rightElbow)) {
-                        // Calculate angles
                         const leftElbowAngle = angleBetween(leftShoulder, leftElbow, leftWrist);
                         const rightElbowAngle = angleBetween(rightShoulder, rightElbow, rightWrist);
 
-                        // Validate angles
                         if (isValidElbowAngle(leftElbowAngle) && isValidElbowAngle(rightElbowAngle)) {
                             const avgElbowAngle = (leftElbowAngle + rightElbowAngle) / 2;
 
-                            // Calculate feet distance normalized by shoulder width
                             const shoulderDist = distance(leftShoulder, rightShoulder);
                             const feetDistance = distance(leftAnkle, rightAnkle);
                             const normalizedFeetDist = normalizeDistance(feetDistance, shoulderDist);
 
-                            // Validate normalized feet distance
                             if (isValidFeetDistance(normalizedFeetDist)) {
                                 frames.push({
                                     frameIndex: frames.length,
@@ -133,24 +295,24 @@
                                     feetDistance: normalizedFeetDist
                                 });
 
-                                // Update UI to show progress
-                                resultsEl.textContent = `Analyzing... Captured ${frames.length} valid frames`;
+                                drawStatus(`Capturing: ${frames.length} frames`, '#00ff00');
                             }
                         }
                     }
                 }
             }
 
-            // Continue for 5 seconds
             if (performance.now() - startTime < 5000) {
                 requestAnimationFrame(detectFrame);
             } else {
+                isAnalyzing = false;
                 if (frames.length < 10) {
-                    // Need minimum frames for reliable analysis
                     resultsEl.textContent = "Not enough valid data. Please:\n" +
                         "1. Step back so your full body is visible\n" +
                         "2. Get into shooting position with arms raised\n" +
                         "3. Hold the position steady for 5 seconds";
+                    // Restart preview
+                    startLivePreview();
                 } else {
                     resultsEl.textContent = `Uploading ${frames.length} frames...`;
                     sendData(frames);
@@ -174,9 +336,15 @@
 
             const data = await response.json();
             resultsEl.textContent = JSON.stringify(data, null, 2);
+
+            // Restart preview after showing results
+            setTimeout(() => {
+                startLivePreview();
+            }, 5000);
         } catch (error) {
             resultsEl.textContent = "Error uploading analysis. Check console.";
             console.error(error);
+            startLivePreview();
         }
     }
 
@@ -184,7 +352,16 @@
     // Start Button
     // ----------------------------
     startBtn.addEventListener('click', async () => {
-        await setupCamera();
-        await startAnalysis();
+        if (!detector) {
+            // First time setup
+            await setupCamera();
+            await startLivePreview();
+            startBtn.textContent = "Start Analysis";
+            resultsEl.textContent = "Camera ready! Position yourself and click 'Start Analysis' when ready.";
+        } else if (!isAnalyzing) {
+            // Start countdown then analysis
+            await showCountdown();
+            await startAnalysis();
+        }
     });
 });
