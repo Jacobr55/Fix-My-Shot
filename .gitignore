@@ -1,0 +1,12 @@
+﻿# Build Folders
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# NuGet
+*.nupkg
+packages/
