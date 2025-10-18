@@ -1,7 +1,19 @@
+using FixMyShot.Data;
+using Microsoft.EntityFrameworkCore;
+
+
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+
+//SQL lite register
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+options.UseSqlite("Data Source=FixMyShot.db"));
+
+
 
 var app = builder.Build();
 
