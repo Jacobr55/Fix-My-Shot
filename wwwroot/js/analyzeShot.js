@@ -9,10 +9,10 @@
     let detector;
     let frames = [];
     let isAnalyzing = false;
+    let showSkeleton = false;
 
-    // ----------------------------
-    // Camera Setup
-    // ----------------------------
+   
+    // Camera Setup 
     async function setupCamera() {
         const stream = await navigator.mediaDevices.getUserMedia({
             video: { width: 480, height: 360 },
@@ -191,8 +191,10 @@
             if (poses.length > 0 && !isAnalyzing) {
                 const kp = poses[0].keypoints;
 
-                // Draw skeleton
-                drawSkeleton(kp, minConfidence);
+                // Draw skeleton only if enabled
+                if (showSkeleton) {
+                    drawSkeleton(kp, minConfidence);
+                }
 
                 // Check if ready for analysis
                 const leftShoulder = kp.find(k => k.name === "left_shoulder");
@@ -216,13 +218,16 @@
                     leftAnkle?.score > minConfidence &&
                     rightAnkle?.score > minConfidence;
 
-                if (elbowsVisible && feetVisible &&
-                    isInShootingPosition(leftShoulder, leftElbow, rightShoulder, rightElbow)) {
-                    drawStatus('✓ Ready to Analyze!', '#00ff00');
-                } else if (!elbowsVisible || !feetVisible) {
-                    drawStatus('Step back - show full body', '#ff0000');
-                } else {
-                    drawStatus('Raise arms to shooting position', '#ffff00');
+                // Only draw status if skeleton is visible
+                if (showSkeleton) {
+                    if (elbowsVisible && feetVisible &&
+                        isInShootingPosition(leftShoulder, leftElbow, rightShoulder, rightElbow)) {
+                        drawStatus('✓ Ready to Analyze!', '#00ff00');
+                    } else if (!elbowsVisible || !feetVisible) {
+                        drawStatus('Step back - show full body', '#ff0000');
+                    } else {
+                        drawStatus('Raise arms to shooting position', '#ffff00');
+                    }
                 }
             }
 
@@ -252,8 +257,10 @@
             if (poses.length > 0) {
                 const kp = poses[0].keypoints;
 
-                // Draw skeleton during analysis
-                drawSkeleton(kp, minConfidence);
+                // Draw skeleton during analysis only if enabled
+                if (showSkeleton) {
+                    drawSkeleton(kp, minConfidence);
+                }
 
                 const leftShoulder = kp.find(k => k.name === "left_shoulder");
                 const rightShoulder = kp.find(k => k.name === "right_shoulder");
@@ -364,4 +371,23 @@
             await startAnalysis();
         }
     });
+
+    // ----------------------------
+    // Skeleton Toggle Button
+    // ----------------------------
+    const toggleSkeletonBtn = document.getElementById('toggleSkeletonBtn');
+    if (toggleSkeletonBtn) {
+        toggleSkeletonBtn.addEventListener('click', () => {
+            showSkeleton = !showSkeleton;
+            if (showSkeleton) {
+                toggleSkeletonBtn.textContent = "Hide Skeleton";
+                toggleSkeletonBtn.classList.remove('bg-gray-500', 'hover:bg-gray-600', 'border-gray-400');
+                toggleSkeletonBtn.classList.add('bg-green-600', 'hover:bg-green-700', 'border-green-500');
+            } else {
+                toggleSkeletonBtn.textContent = "Show Skeleton";
+                toggleSkeletonBtn.classList.remove('bg-green-600', 'hover:bg-green-700', 'border-green-500');
+                toggleSkeletonBtn.classList.add('bg-gray-500', 'hover:bg-gray-600', 'border-gray-400');
+            }
+        });
+    }
 });
