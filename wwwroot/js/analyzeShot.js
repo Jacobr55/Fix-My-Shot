@@ -276,7 +276,7 @@
 
     // Countdown
     async function showCountdown() {
-        for (let i = 3; i > 0; i--) {
+        for (let i = 6; i > 0; i--) {
             countdownEl.textContent = i;
             countdownEl.style.display = 'block';
             await new Promise(resolve => setTimeout(resolve, 1000));
