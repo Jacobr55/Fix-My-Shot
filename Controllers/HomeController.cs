@@ -20,9 +20,15 @@ namespace FixMyShot.Controllers
             _context = context;
         }
 
+        public IActionResult HomePage()
+        {
+            return View();
+        }
+
         public IActionResult Index()
         {
             return View();
+           
         }
 
         public IActionResult Privacy()
