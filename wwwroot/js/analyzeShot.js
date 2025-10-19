@@ -1,4 +1,32 @@
-﻿document.addEventListener("DOMContentLoaded", () => {
+﻿/**
+ * analyzeShot.js
+ * -----------------------------
+ * Purpose:
+ *   Manages live camera feed, detects player pose using TensorFlow MoveNet,
+ *   and analyzes basketball shooting form over a 5-second interval.
+ *
+ * Features:
+ *   - Camera setup with 1280x720 resolution
+ *   - Real-time skeleton drawing with confidence-based coloring
+ *   - 6-second countdown before analysis
+ *   - Smoothed keypoints for stable tracking
+ *   - Frame data upload to SQLite
+ *
+ * Dependencies:
+ *   - @tensorflow/tfjs
+ *   - @tensorflow-models/pose-detection
+ *   - @tensorflow/tfjs-backend-webgl
+ *
+ * Author: Jacob Reimer
+ * Created: October 18, 2025
+ *
+ * Notice:
+ *   This file includes AI-assisted code generation!
+ *   (ChatGPT and Claude were used to assist in development).
+ */
+
+
+document.addEventListener("DOMContentLoaded", () => {
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -21,7 +49,7 @@
     let statusMessageCount = 0;
     const STATUS_THRESHOLD = 3;
 
-    // Camera Setup - DEFAULT TO 1280x720 for tall players
+    // Camera Setup - Default is 1280x720 
     async function setupCamera() {
         try {
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
