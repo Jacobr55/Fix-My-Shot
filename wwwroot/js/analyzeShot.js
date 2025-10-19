@@ -11,7 +11,7 @@
     let isAnalyzing = false;
     let showSkeleton = false;
 
-   
+
     // Camera Setup 
     async function setupCamera() {
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -173,71 +173,75 @@
         countdownEl.style.display = 'none';
     }
 
-    // ----------------------------
-    // Main Pose Analysis with Live Preview
-    // ----------------------------
     async function startLivePreview() {
-        const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
-        detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, detectorConfig);
+        // Ensure detector is created
+        if (!detector) {
+            const detectorConfig = { modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING };
+            detector = await poseDetection.createDetector(
+                poseDetection.SupportedModels.MoveNet,
+                detectorConfig
+            );
+        }
 
         const minConfidence = 0.6;
 
         async function detectFrame() {
-            // Clear canvas
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Draw the video on the canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            const poses = await detector.estimatePoses(video);
+            if (!isAnalyzing) {
+                const poses = await detector.estimatePoses(video);
 
-            if (poses.length > 0 && !isAnalyzing) {
-                const kp = poses[0].keypoints;
+                if (poses.length > 0) {
+                    const kp = poses[0].keypoints;
 
-                // Draw skeleton only if enabled
-                if (showSkeleton) {
-                    drawSkeleton(kp, minConfidence);
-                }
+                    // Optionally draw skeleton
+                    if (showSkeleton) {
+                        drawSkeleton(kp, minConfidence);
+                    }
 
-                // Check if ready for analysis
-                const leftShoulder = kp.find(k => k.name === "left_shoulder");
-                const rightShoulder = kp.find(k => k.name === "right_shoulder");
-                const leftElbow = kp.find(k => k.name === "left_elbow");
-                const rightElbow = kp.find(k => k.name === "right_elbow");
-                const leftWrist = kp.find(k => k.name === "left_wrist");
-                const rightWrist = kp.find(k => k.name === "right_wrist");
-                const leftAnkle = kp.find(k => k.name === "left_ankle");
-                const rightAnkle = kp.find(k => k.name === "right_ankle");
+                    // Status messages
+                    const leftShoulder = kp.find(k => k.name === "left_shoulder");
+                    const rightShoulder = kp.find(k => k.name === "right_shoulder");
+                    const leftElbow = kp.find(k => k.name === "left_elbow");
+                    const rightElbow = kp.find(k => k.name === "right_elbow");
+                    const leftWrist = kp.find(k => k.name === "left_wrist");
+                    const rightWrist = kp.find(k => k.name === "right_wrist");
+                    const leftAnkle = kp.find(k => k.name === "left_ankle");
+                    const rightAnkle = kp.find(k => k.name === "right_ankle");
 
-                const elbowsVisible =
-                    leftShoulder?.score > minConfidence &&
-                    leftElbow?.score > minConfidence &&
-                    leftWrist?.score > minConfidence &&
-                    rightShoulder?.score > minConfidence &&
-                    rightElbow?.score > minConfidence &&
-                    rightWrist?.score > minConfidence;
+                    const elbowsVisible =
+                        leftShoulder?.score > minConfidence &&
+                        leftElbow?.score > minConfidence &&
+                        leftWrist?.score > minConfidence &&
+                        rightShoulder?.score > minConfidence &&
+                        rightElbow?.score > minConfidence &&
+                        rightWrist?.score > minConfidence;
 
-                const feetVisible =
-                    leftAnkle?.score > minConfidence &&
-                    rightAnkle?.score > minConfidence;
+                    const feetVisible =
+                        leftAnkle?.score > minConfidence &&
+                        rightAnkle?.score > minConfidence;
 
-                // Only draw status if skeleton is visible
-                if (showSkeleton) {
-                    if (elbowsVisible && feetVisible &&
-                        isInShootingPosition(leftShoulder, leftElbow, rightShoulder, rightElbow)) {
-                        drawStatus('✓ Ready to Analyze!', '#00ff00');
-                    } else if (!elbowsVisible || !feetVisible) {
-                        drawStatus('Step back - show full body', '#ff0000');
-                    } else {
-                        drawStatus('Raise arms to shooting position', '#ffff00');
+                    if (showSkeleton) {
+                        if (elbowsVisible && feetVisible &&
+                            isInShootingPosition(leftShoulder, leftElbow, rightShoulder, rightElbow)) {
+                            drawStatus('✓ Ready to Analyze!', '#00ff00');
+                        } else if (!elbowsVisible || !feetVisible) {
+                            drawStatus('Step back - show full body', '#ff0000');
+                        } else {
+                            drawStatus('Raise arms to shooting position', '#ffff00');
+                        }
                     }
                 }
             }
 
-            if (!isAnalyzing) {
-                requestAnimationFrame(detectFrame);
-            }
+            requestAnimationFrame(detectFrame);
         }
 
         detectFrame();
     }
+
+
 
     // ----------------------------
     // Analysis Phase

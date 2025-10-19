@@ -5,68 +5,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - FixMyShot</title>
     <link rel="stylesheet" href="~/css/output.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/FixMyShot.styles.css" asp-append-version="true" />
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">FixMyShot</a>
-              
-                <div class="ml-auto flex items-center space-x-4">
+<body class="bg-gray-50">
+    <header class="bg-white shadow-md">
+        <nav class="container mx-auto px-6 py-4">
+            <div class="flex items-center justify-between">
+                <a asp-area="" asp-controller="Home" asp-action="HomePage" class="text-2xl font-bold text-indigo-600 hover:text-indigo-700">
+                    FixMyShot
+                </a>
+
+                <div class="hidden md:flex items-center space-x-8">
+                    <a asp-area="" asp-controller="Home" asp-action="Index" class="text-gray-700 hover:text-indigo-600 font-medium transition">
+                        Analyze
+                    </a>
                     @if (User.Identity?.IsAuthenticated == true)
                     {
-                        <span class="text-gray-700">Hello, @User.Identity.Name!</span>
-                        <form asp-area="Identity" asp-page="/Account/Logout" method="post" class="inline">
-                            <button type="submit" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded">
-                                Logout
-                            </button>
-                        </form>
-                    }
-                    else
-                    {
-                        <a asp-area="Identity" asp-page="/Account/Register" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">
-                            Register
-                        </a>
-                        <a asp-area="Identity" asp-page="/Account/Login" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
-                            Login
+                        <a asp-area="" asp-controller="Home" asp-action="History" class="text-gray-700 hover:text-indigo-600 font-medium transition">
+                            History
                         </a>
                     }
-                </div>
+                    <a asp-area="" asp-controller="Home" asp-action="Privacy" class="text-gray-700 hover:text-indigo-600 font-medium transition">
+                        Privacy
+                    </a>
 
-
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
+                    <partial name="_LoginPartial" />
                 </div>
             </div>
         </nav>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - FixMyShot - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+    <main>
+        @RenderBody()
+    </main>
+
+    <footer class="bg-white border-t border-gray-200 mt-20">
+        <div class="container mx-auto px-6 py-6">
+            <p class="text-center text-gray-600 text-sm">
+                &copy; 2025 - FixMyShot - <a asp-area="" asp-controller="Home" asp-action="Privacy" class="text-indigo-600 hover:text-indigo-700">Privacy</a>
+            </p>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>

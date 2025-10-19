@@ -1,6 +1,7 @@
 using FixMyShot.Data;
 using FixMyShot.Helpers;
 using FixMyShot.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -30,6 +31,17 @@ namespace FixMyShot.Controllers
             return View();
            
         }
+        [Authorize] // Only logged-in users can view history
+        public async Task<IActionResult> History()
+        {
+            var userName = User.Identity?.Name;
+            var analyses = await _context.ShotAnalyses
+                .Where(a => a.UserName == userName)
+                .OrderByDescending(a => a.CreatedAt)
+                .ToListAsync();
+
+            return View(analyses);
+        }
 
         public IActionResult Privacy()
         {
@@ -41,8 +53,8 @@ namespace FixMyShot.Controllers
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
-
-        [HttpPost]
+        //auth for save now.
+        [HttpPost] // Anyone can analyze, but only logged-in users save to DB
         public async Task<IActionResult> SaveAnalysis([FromBody] ShotAnalysisRequest request)
         {
             if (request == null || request.Frames == null || request.Frames.Count == 0)
@@ -52,22 +64,32 @@ namespace FixMyShot.Controllers
             var avgFeet = request.Frames.Average(f => f.FeetDistance);
             var tips = AnalysisHelper.TipGeneration(avgElbow, avgFeet);
 
-            var analysis = new ShotAnalysis
-            {
-                UserName = request.UserName,
-                AverageElbowAngle = avgElbow,
-                AverageFeetDistance = avgFeet,
-                Tips = string.Join("\n", tips)
-            };
+            bool isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+            bool savedToHistory = false;
 
-            _context.ShotAnalyses.Add(analysis);
-            await _context.SaveChangesAsync();
+            // Only save to database if user is logged in
+            if (isAuthenticated)
+            {
+                var analysis = new ShotAnalysis
+                {
+                    UserName = User.Identity?.Name ?? "Anonymous",
+                    AverageElbowAngle = avgElbow,
+                    AverageFeetDistance = avgFeet,
+                    Tips = string.Join("\n", tips)
+                };
+
+                _context.ShotAnalyses.Add(analysis);
+                await _context.SaveChangesAsync();
+                savedToHistory = true;
+            }
 
             return Json(new
             {
                 averageElbowAngle = avgElbow,
                 averageFeetDistance = avgFeet,
-                tips
+                tips,
+                savedToHistory = savedToHistory,
+                userName = isAuthenticated ? User.Identity?.Name : "Guest"
             });
         }
 

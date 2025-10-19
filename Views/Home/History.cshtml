@@ -1,0 +1,89 @@
+﻿@model List<FixMyShot.Models.ShotAnalysis>
+@{
+    ViewData["Title"] = "Shot History";
+}
+
+<div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-10 px-4">
+    <div class="max-w-6xl mx-auto">
+        <div class="mb-8 flex justify-between items-center">
+            <h1 class="text-4xl font-bold text-gray-800">Your Shot History</h1>
+            <a href="/Home/Index" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition shadow">
+                New Analysis
+            </a>
+        </div>
+
+        @if (Model.Count == 0)
+        {
+            <div class="bg-white rounded-lg shadow-lg p-12 text-center">
+                <div class="text-gray-400 mb-4">
+                    <svg class="mx-auto h-24 w-24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <h2 class="text-2xl font-semibold text-gray-700 mb-2">No analyses yet</h2>
+                <p class="text-gray-500 mb-6">Start analyzing your shot form to see your history here!</p>
+                <a href="/Home/Index" class="inline-block bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-lg font-semibold transition">
+                    Get Started
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Statistics</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-indigo-50 rounded-lg p-4">
+                        <p class="text-sm text-gray-600 mb-1">Total Analyses</p>
+                        <p class="text-3xl font-bold text-indigo-600">@Model.Count</p>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4">
+                        <p class="text-sm text-gray-600 mb-1">Avg Elbow Angle</p>
+                        <p class="text-3xl font-bold text-green-600">@Model.Average(a => a.AverageElbowAngle).ToString("F1")°</p>
+                    </div>
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <p class="text-sm text-gray-600 mb-1">Avg Feet Distance</p>
+                        <p class="text-3xl font-bold text-blue-600">@Model.Average(a => a.AverageFeetDistance).ToString("F2")</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                @foreach (var analysis in Model)
+                {
+                    <div class="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition">
+                        <div class="flex justify-between items-start mb-4">
+                            <div>
+                                <p class="text-sm text-gray-500">@analysis.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy 'at' h:mm tt")</p>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="text-right">
+                                    <p class="text-xs text-gray-500">Elbow Angle</p>
+                                    <p class="text-lg font-semibold text-indigo-600">@analysis.AverageElbowAngle.ToString("F1")°</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-xs text-gray-500">Feet Distance</p>
+                                    <p class="text-lg font-semibold text-blue-600">@analysis.AverageFeetDistance.ToString("F2")</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="border-t border-gray-200 pt-4">
+                            <h3 class="font-semibold text-gray-700 mb-2">Tips:</h3>
+                            <div class="space-y-2">
+                                @foreach (var tip in analysis.Tips.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                                {
+                                    <div class="flex items-start">
+                                        <svg class="h-5 w-5 text-indigo-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        <p class="text-gray-700 text-sm">@tip</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
