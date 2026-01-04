@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
-//var connectionString = builder.Configuration.GetConnectionString("ApplicationDbContextConnection") ?? throw new InvalidOperationException("Connection string 'ApplicationDbContextConnection' not found.");
 
 var connectionString = builder.Configuration.GetConnectionString("ApplicationDbContextConnection")
                        ?? "Data Source=FixMyShot.db"; // fallback if not in appsettings.json
@@ -17,7 +16,7 @@ options.UseSqlite(connectionString));
 
 builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 {
-    options.SignIn.RequireConfirmedAccount = false; // adjust to true if you want email confirmation
+    options.SignIn.RequireConfirmedAccount = false; 
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
     options.Password.RequireUppercase = true;
@@ -27,13 +26,11 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
 
-// Add services to the container.
+
 builder.Services.AddControllersWithViews();
 
-//new
-builder.Services.AddRazorPages();
 
-//builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true).AddEntityFrameworkStores<ApplicationDbContext>();
+builder.Services.AddRazorPages();
 
 
 
@@ -45,7 +42,7 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    
     app.UseHsts();
 }
 
@@ -54,7 +51,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-//new
+
 app.UseAuthentication();
 
 

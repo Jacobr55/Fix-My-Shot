@@ -53,7 +53,7 @@ namespace FixMyShot.Controllers
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
-        //auth for save now.
+     
         [HttpPost] // Anyone can analyze, but only logged-in users save to DB
         public async Task<IActionResult> SaveAnalysis([FromBody] ShotAnalysisRequest request)
         {
